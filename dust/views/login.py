@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, request
 from flask.views import MethodView
 from flask_mail import Message
 
-from ..core import redis_store, db, oauth_client, mail
+from ..core import redis_store, db, oauth_client, mail, logger
 from ..exceptions import LoginInfoRequired, LoginInfoError, NoError, LoginAuthError, EmailRequired, ResetTokenError, \
     NoEmailError
 from ..models.user_planet import User, Notification
@@ -59,6 +59,9 @@ class LoginAuthGithub(MethodView):
     def post(self):
         code = request.get_json().get('code')
         resp = oauth_client.get_token(code)
+        logger.debug('github auth resp: %s', resp.json())
+        logger.debug('github auth resp.data: %s', resp.json())
+        logger.debug('github auth resp.json(): %s', resp.json())
         access_token = resp.json().get('access_token')
         if not access_token:
             raise LoginAuthError()
