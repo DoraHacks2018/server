@@ -23,7 +23,9 @@ class LoginView(MethodView):
             raise LoginInfoRequired()
 
         user = User.get_by_username(username)
-        if not (user and user.check_password(password)):
+        if not user:
+            raise LoginInfoError()
+        if not user.check_password(password):
             raise LoginInfoError()
         auth_token = binascii.hexlify(os.urandom(16)).decode()  # noqa
         redis_store.hmset(auth_token, dict(
@@ -112,12 +114,12 @@ class SendEmailResetPassword(MethodView):
             email=email,
             created_at=datetime.now(),
         ))
-        expires_in = 600  # expire in 1 sec
+        expires_in =current_app.config.get('LOGIN_EXPIRE_TIME', 3600 * 24)  # expire in 1 day
         redis_store.expire(auth_token, expires_in)
         msg = Message(subject='密码重置',  # 需要使用默认发送者则不用填
                       recipients=[email])
         # 邮件内容会以文本和html两种格式呈现，而你能看到哪种格式取决于你的邮件客户端。
-        cnt = "<b>请点击链接修改密码：<a href='http://ranking.dorahacks.com/resetpassword?token=%s'>修改密码</a><br>如果打不开可以复制链接到浏览器打开<b>"
+        cnt = "<b>请点击链接修改密码：<a href='http://ranking.dorahacks.com/resetpassword?token=%s'>修改密码</a><br>24小时内有效<b>"
         msg.html = cnt % auth_token
         mail.send(msg)
         return dict(state=0)
